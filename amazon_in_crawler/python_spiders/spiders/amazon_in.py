@@ -17,14 +17,12 @@ class AmazonInSpider(scrapy.Spider):
                 asin=remove_white_spaces(char)
             else:
                 base_url= remove_white_spaces(char)
-                asin=re.search(r'(?<=dp/)\w+',base_url)
-                if asin:
-                    asin=asin.group()
-            yield scrapy.Request(url=base_url,
-                                 callback=self.parse,
-                                 meta={'ASIN':asin,
-                                       'URL':base_url}
-                                 )
+                asin=re.search(r'B0\w+',base_url).group()
+                yield scrapy.Request(url=base_url,
+                                     callback=self.parse,
+                                     meta={'ASIN':asin,
+                                           'URL':base_url}
+                                     )
             
     def parse(self, response, **kwargs):
         asin = response.meta.get('ASIN')
@@ -99,7 +97,9 @@ class AmazonInSpider(scrapy.Spider):
             item_loader.add_value('num_of_people_reacted',str(w2n.word_to_num(helpful_statement.split()[0])))
             
         review_date = response.xpath('.//*[contains(@class,"review-date")]/text()').extract_first()
-        date = re.search(r'(?<=\son\s).*',review_date)
+        if review_date==None:
+            review_date = response.xpath('.//*[@data-hook=""review-date"]/text()').extract_first()
+        date = re.search(r'(?<=\son\s).+',review_date)
         if date:
             date_str = remove_white_spaces(date.group())
             item_loader.add_value('review_date',format_date(date_str))
